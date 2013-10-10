@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="shortcut icon" href="/static/ico/favicon.png">
+    <title>Harstorage reports</title>
+    <link href="/static/css/bootstrap.css" rel="stylesheet">
+    <link href="/static/css/bootstrap-glyphicons.css" rel="stylesheet">
+    <link href="/static/css/starter-template.css" rel="stylesheet">
+  </head>
+  <body>
+    <div class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">Harstorage Reports</a>
+        </div>
+        <div class="collapse navbar-collapse">
+          <ul class="nav navbar-nav">
+            {% for item in items %}
+            <li><a href="{{item.url}}">{{item.title}}</a></li>
+            {% endfor %}
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div>
+    </div>
+    <div class="container">
+      <div class="starter-template">
+        {% for c in d.charts %}
+        <div id="chart_div_{{c.type}}" style="width: 1000px; height: 600px;"></div>
+        {% endfor %}
+      </div>
+    </div><!-- /.container -->
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <script src="//code.jquery.com/jquery.js"></script>
+    <script src="/static/js/bootstrap.min.js"></script>
+    <script type="text/javascript">
+      google.load("visualization", "1", {packages:["corechart"]});
+      google.setOnLoadCallback(drawChart);
+      function drawChart() {
+        {% for c in d.charts %}
+        drawChartType("{{c.type}}", "{{c.title}}", "{{c.url}}");
+        {% endfor %}
+      }
+      function drawChartType(type, title, url) {
+        var jsonData = $.ajax({
+          url: url,
+          dataType:"json",
+          //async: false
+        }).done(function(jsonData) {//.responseText;
+          var data = new google.visualization.DataTable(jsonData);
+          var options = {
+            title: "{{d.title}} - " + title,
+            legend: {position:'none'},
+          };
+          var div = document.getElementById('chart_div_' + type);
+          var chart = new google.visualization.ColumnChart(div);
+          chart.draw(data, options);
+        });
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="shortcut icon" href="/static/ico/favicon.png">
+    <title>Harstorage reports</title>
+    <link href="/static/css/bootstrap.css" rel="stylesheet">
+    <link href="/static/css/starter-template.css" rel="stylesheet">
+  </head>
+  <body>
+    <div class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">Harstorage Reports</a>
+        </div>
+        <div class="collapse navbar-collapse">
+          <ul class="nav navbar-nav">
+            {% for item in items %}
+            <li><a href="{{item.url}}">{{item.title}}</a></li>
+            {% endfor %}
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div>
+    </div>
+    <div class="container">
+      <div class="starter-template">
+        <div id="chart_div" style="height: 600px;"></div>
+        <div id="table_div" class="table table-bordered"></div>
+      </div>
+    </div><!-- /.container -->
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <script src="//code.jquery.com/jquery.js"></script>
+    <script src="/static/js/bootstrap.min.js"></script>
+    <script type="text/javascript">
+      google.load("visualization", "1", {packages:["corechart", "table"]});
+      google.setOnLoadCallback(drawChart);
+      function drawChart() {
+        var jsonData = $.ajax({
+          url: "{{url}}",
+          dataType:"json",
+        }).done(function(jsonData) {
+          var data = new google.visualization.DataTable(jsonData);
+          var options = {
+            title: 'Full load time trend',
+            hAxis: {format: "MMMyy"}
+          };
+          var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
+          chart.draw(data, options);
+          var table = new google.visualization.Table(document.getElementById('table_div'));
+          var formatter = new google.visualization.TableColorFormat();
+          formatter.addRange(1,    2000, 'black', '#c2ffb0');
+          formatter.addRange(2000, 3000, 'black', '#ffffb0');
+          formatter.addRange(3000, 4000, 'black', '#ffeab0');
+          formatter.addRange(4000, null, 'black', '#ffc5b0');
+          for (var col=1; col<data.getNumberOfColumns(); col++) {
+              formatter.format(data, col);
+          }
+          table.draw(data, {
+            allowHtml: true,
+            cssClassNames: {
+              headerRow: 'someclass',
+              tableRow: 'someclass',
+              oddTableRow: 'someclass',
+              selectedTableRow: 'someclass',
+              hoverTableRow: 'someclass',
+              headerCell: 'someclass',
+              tableCell: 'someclass',
+              rowNumberCell: 'someclass'
+            }
+          });
+        });
+      }
+    </script>
+  </body>
+</html>

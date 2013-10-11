@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="shortcut icon" href="/static/ico/favicon.png">
+    <title>Harstorage reports</title>
+    <link href="/static/css/bootstrap.css" rel="stylesheet">
+    <link href="/static/css/bootstrap-glyphicons.css" rel="stylesheet">
+    <link href="/static/css/starter-template.css" rel="stylesheet">
+  </head>
+  <body>
+    <div class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <a class="navbar-brand" href="#">Harstorage Reports</a>
+        </div>
+        <div class="collapse navbar-collapse">
+          <ul class="nav navbar-nav">
+            {% for item in items %}
+            <li><a href="{{item.url}}">{{item.title}}</a></li>
+            {% endfor %}
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div>
+    </div>
+    <div class="container">
+      <div class="starter-template">
+         <div id="dashboard_div">
+           <div id="filter2_div" style="position:absolute;left:0;width:50px;height:600px;"></div>
+           <div id="chart_div" style="position:relative;margin-left:50px;height:600px;"></div>
+           <div id="filter_div" style="position:relative;height:50px;"></div>
+         </div>
+      </div>
+    </div><!-- /.container -->
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <script src="//code.jquery.com/jquery.js"></script>
+    <script src="/static/js/bootstrap.min.js"></script>
+    <script type="text/javascript">
+      google.load("visualization", "1", {packages:["controls", "corechart"]});
+      google.setOnLoadCallback(drawChart);
+      var chart;
+      function drawChart(type, title, url) {
+        var jsonData = $.ajax({
+          url: '{{d.url}}',
+          dataType:"json",
+        }).done(function(jsonData) {//.responseText;
+          var data = new google.visualization.DataTable(jsonData);
+          chart = new google.visualization.ChartWrapper({
+             'chartType': 'ScatterChart',
+             'containerId': 'chart_div',
+             'options': {
+                width: '100%', height: 600,
+                legend: {position:'none'}
+             },
+             'view': {'columns': [0, 3]},
+          });
+          chart.setDataTable(jsonData);
+          chart.setOption('title', chart.getDataTable().getColumnLabel(3));
+          chart.draw();
+          var div = document.getElementById('dashboard_div');
+          var dashboard = new google.visualization.Dashboard(div);
+          var control = new google.visualization.ControlWrapper({
+            'controlType': 'ChartRangeFilter',
+            'containerId': 'filter_div',
+            'options': {
+                'filterColumnLabel': 'DateTime',
+            },
+          });
+          var control2 = new google.visualization.ControlWrapper({
+            'controlType': 'NumberRangeFilter',
+            'containerId': 'filter2_div',
+            'options': {
+                'ui': {
+                    'orientation': 'vertical',
+                    'label': null,
+                },
+                'filterColumnIndex': 3,
+                width: 50, height: 600,
+            },
+          });
+          dashboard.bind([control, control2], chart);
+          dashboard.draw(data);
+        });
+      }
+    </script>
+  </body>
+</html>

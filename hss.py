@@ -39,9 +39,10 @@ def monththis():
     d = datetime.now().date() 
     return redirect(url_for('monthidx', qyear=d.year, qmonth=d.month))
 
-@app.route('/label/<qlabel>/<int:qyear>/<int:qmonth>/<qtype>')
-def label(qlabel, qyear, qmonth, qtype):
-    url = url_for('onelabel', qlabel=qlabel, qyear=qyear, qmonth=qmonth, qtype=qtype)
+@app.route('/label/<qlabel>/<int:qyear>/<int:qmonth>')
+def label(qlabel, qyear, qmonth):
+    url = url_for('onelabel', qlabel=qlabel, qyear=qyear, qmonth=qmonth)
+    title = 'Timeline for %s' % qlabel
     #url = '/api/label/%s/%s/%s/%s' % (qlabel, qyear, qmonth, qtype)
     return render_template('onelabel.html', d=locals(), items=menu())
 
@@ -53,55 +54,39 @@ def monthidx(qyear, qmonth):
         qmonth=(qmonth>1 and qmonth-1 or 12))
     nextmonth = url_for('monthidx', qyear=(qmonth<12 and qyear or qyear+1), 
         qmonth=(qmonth<12 and qmonth+1 or 1))
-    charts = [
-        {'type': 'time', 'title': 'Full loading time'},
-        {'type': 'size', 'title': 'Total bytes transferred'},
-        {'type': 'reqs', 'title': 'Number of requests'},
-        {'type': 'disc', 'title': 'Discarded samples'},
-    ]
-    for chart in charts:
-        chart['url'] =  url_for('onemonth', qyear=qyear, qmonth=qmonth, 
-            qtype=chart['type'])
+    url = url_for('onemonth', qyear=qyear, qmonth=qmonth)
     items = menu()
     items.append({'url':lastmonth, 'title':"Prev month"});
     items.append({'url':nextmonth, 'title':"Next month"});
     return render_template('onemonth.html', d=locals(), items=items)
 
-column_labels = {
-    "size": [1, 'Total Size (KB)'],
-    "reqs": [2, 'Request Count'],
-    "time": [3, 'Full Load time (ms)'],
-    "disc": [4, 'Discarded ratio'],
-}
-
-@app.route('/api/label/<qlabel>/<int:qyear>/<int:qmonth>/<qtype>')
-def onelabel(qlabel,qyear,qmonth,qtype):
-    if qtype not in column_labels:
-        abort(404)
+@app.route('/api/label/<qlabel>/<int:qyear>/<int:qmonth>')
+def onelabel(qlabel,qyear,qmonth):
     table = Table()
     table.add_column('DateTime', datetime, "DateTime")
-    table.add_column(column_labels[qtype][1], int, column_labels[qtype][1])
+    table.add_column('size', int, 'Total Size (KB)')
+    table.add_column('reqs', int, 'Request Count')
+    table.add_column('time', int, 'Full Load time (ms)')
     for item in app.cb.query(app.view, 'bylabel', reduce=False,
             startkey=qlabel, endkey=qlabel):
-        dt = datetime.strptime(item.value[0], "%Y-%m-%d %H:%M:%S")
+        tstamp, size, reqs, time = item.value[:4]
+        dt = datetime.strptime(tstamp, "%Y-%m-%d %H:%M:%S")
         if dt.year == qyear and dt.month == qmonth:
-            table.append([dt, item.value[column_labels[qtype][0]]])
+            table.append([dt, size, reqs, time])
     return encode(table)
 
-@app.route('/api/month/<int:qyear>/<int:qmonth>/<qtype>')
-def onemonth(qyear,qmonth,qtype):
-    if qtype not in column_labels:
-        abort(404)
+@app.route('/api/month/<int:qyear>/<int:qmonth>')
+def onemonth(qyear,qmonth):
     table = Table()
-    table.add_column('Label', unicode, "Label")
-    table.add_column(column_labels[qtype][1], int, column_labels[qtype][1])
-    #for item in cb.query('results', 'bylabeldate', group=True, group_level=4):
+    table.add_column('label', unicode, "Label")
+    table.add_column('size', int, 'Total Size (KB)')
+    table.add_column('reqs', int, 'Request Count')
+    table.add_column('time', int, 'Full Load time (ms)')
     for item in app.cb.query(app.view, 'bylabeldate', group=True, group_level=4):
-        item.value[4] *= 100
         catclass, country, year, month = item.key
         if year == qyear and month == qmonth and catclass == 'CAT+':
-            table.append([country, 
-                item.value[column_labels[qtype][0]]/item.value[0]])
+            n, size, reqs, time = item.value[:4]
+            table.append([country, size/n, reqs/n, time/n])
     return encode(table)
 
 @app.route('/api/target')

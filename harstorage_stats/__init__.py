@@ -15,6 +15,7 @@ def menu():
     reports = (
         ('trendmonthly', 'Monthly trend'),
         ('trendweekly', 'Weekly trend'),
+        ('trenddaily', 'Daily trend'),
         ('monththis', 'This month'),
     )
     return [{'url': url_for(endpoint), 'title': title} 
@@ -23,6 +24,11 @@ def menu():
 @app.route('/')
 def index():
     return render_template('index.html', items=menu())
+
+@app.route('/trend/daily')
+def trenddaily():
+    url = url_for('bycountryday')
+    return render_template('trend.html', url=url, items=menu())
 
 @app.route('/trend/weekly')
 def trendweekly():
@@ -116,6 +122,34 @@ def target():
     }
     return json.dumps(d)
 
+@app.route('/api/bycountry/dailytrend')
+def bycountryday():
+    table = Table()
+    table.add_column('Day', date, "Day")
+    countries = set()
+    t = {}
+    #for item in cb.query('results', 'bylabeldate', group=True, group_level=4):
+    for item in app.cb.query(app.view, 'bylabeldate', group=True, group_level=5):
+        catclass, country, year, month, day = item.key
+        if catclass == 'CAT+':
+            countries.add(country)
+            nitems, totsize, totfiles, tottime = item.value[:4]
+            ymd = date(year, month, day)
+            if ymd not in t: t[ymd] = {}
+            t[ymd][country] = tottime/nitems
+    countries = list(countries)
+    countries.sort()
+    for country in countries:
+        table.add_column(country, int, country)
+    days = t.keys()
+    days.sort()   
+    for day in days[2:-1]:
+        line = [{'value':day, 'label':day.strftime('%Y-%m-%d')}]
+        for country in countries:
+            line.append(t[day].get(country, None))
+        table.append(line)
+    return encode(table)
+
 @app.route('/api/bycountry/monthlytrend')
 def bycountrymonth():
     table = Table()
@@ -137,7 +171,7 @@ def bycountrymonth():
         table.add_column(country, int, country)
     months = t.keys()
     months.sort()   
-    for month in months:
+    for month in months[2:-1]:
         line = [{'value':month, 'label':month.strftime('%Y-%m')}]
         for country in countries:
             line.append(t[month].get(country, None))
